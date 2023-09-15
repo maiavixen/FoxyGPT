@@ -52,13 +52,9 @@ const conversation: ChatCompletionMessageParam[] = [
     }
 ];
 
-
-
-// AIzaSyCY8vdXcUDMT3xE9CAGQBRLeggG9tROMVQ
-
 // Initialise the Google Cloud Vision API.
 log('Initialising Google Cloud Vision API...', colors.yellow);
-const vis = new vision('ya29.a0AfB_byCVot__sL7NPy5POPU7GDjT3Zd9sV6mF0OlVxF6aykps6tb_RMO0IIPiUtL9plVVUWz5Gh8tl7VUXKnYFext4oqo4LIZLeIL1iOgkEybp6eLlGLx1TBvncN9vgzt_FcU_nkHZckOrubuSShcwWOCBEhNrB1BdiECeU7E6UGt5FqGuU4s9W9PHxCBKPMp9ueeSEgqUzalOWelTgW7iTy9-U35upRQgeTZvhl5if1xgpyMMEZDXN52a7srudoYDqRr6oSwBznRFOq5-lScVM-onvoFY58Jhd2ynjuTrO1aIJDTsDrAn9yqDSatuCITMsH3uLMV6dS4rnE6XfH59c5XgyJA5QHdAKr539Kt1vzPQVjdlM5BJNeUB0CvTYUxYXo_PtVVYwYP7KMl0eNG0T_CXViRJUaCgYKAeoSARMSFQGOcNnC5FSuc1pAswt-nu-Xtem4_g0422', 'affable-ring-399020');
+const vis = new vision('AIzaSyCY8vdXcUDMT3xE9CAGQBRLeggG9tROMVQ', 'affable-ring-399020');
 
 // Initialise the Discord bot.
 log('Initialising Discord bot...', colors.yellow);
