@@ -90,7 +90,6 @@ bot.on(Events.MessageCreate, async message => {
                 model: 'text-moderation-stable',
                 input: message.content
             }).then( res => {
-                console.log(res);
                 if(res.results[0].flagged === true) {
                     // If the message is explicit, delete it, log it and return.
                     message.delete();
