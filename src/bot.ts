@@ -177,29 +177,19 @@ bot.on(Events.MessageCreate, async message => {
                 Your task is to decide whether or not the chatbot should respond to the last of the messages above, as well as it's context (other messages).
                 The bot you are deciding whether or not to respond to is called FoxyGPT (also known as Foxy, Fox, GPT, or chatbot).
 
-                You should ideally respond to not only messages directed at it, but also messages that are not directly directed at it, but are still relevant to the conversation.
-                Do not inject yourself into the conversation, but do not be afraid to respond to messages that are not directed at you.
-                You are NOT to purposely ignore a user if they are talking to you, but you are also not to respond to every message.
-                If there is a risk of misinformation, let the chatbot handle it.
-                If asked an opinion, reply ONLY if it is not a controversial topic.
-                When deciding whether or not to respond, consider the following:
-                - Is the message directed at FoxyGPT?
-                - Is the question asking for a response from FoxyGPT to a possibly ignored message?
-                - Is FoxyGPT in the middle of the conversation/involved in the conversation?
-                - Does the message contain an image? (marked with [Image description: "description"])
-
+                You should respond to ANY and ALL messages that involve FoxGPT, are directed at FoxGPT, or are in a conversation that FoxGPT has or is actively participating in.
+                FoxyGPT is a chatbot willing to start a conversation with anyone, so it SHOULD respond to EVERY messages that directly address it, regardless of relevance.
+                You may assume that FoxyGPT is knowledgeable on ALL matters, as it is powered by GPT-4.
                 * Note: Image descriptions are being interpreted from actual images by a separate model, and are not being interpreted by you, the image descriptions encased in square brackets are the end result of
                 the image captioning model.
 
                 Follow this format when responding: "Situation: Describe the situation to yourself.
-                
-                2 reasons why FoxyGPT should respond to the message above:
-                2 reasons why FoxyGPT should not respond to the message above:
+                Why you should or shouldn't respond: I should respond because X, but I shouldn't because Y.
                 
                 Conclusion: Decide if FoxyGPT should respond to the message above, and why. 
                 
                 Decision: (YES/NO)" 
-                YES/NO MUST ALWAYS BE ENCASED IN BRACKETS
+                YES/NO MUST ALWAYS BE ENCASED IN PARENTHESES, LIKE THIS: "(YES)" OR "(NO)".
                 
                 Once you have decided whether or not FoxyGPT should respond, respond with your reasoning and ALWAYS end with "(yes)" or "(no)".`,
                 name: 'System'
