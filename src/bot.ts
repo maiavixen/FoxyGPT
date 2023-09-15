@@ -176,44 +176,38 @@ bot.on(Events.MessageCreate, async message => {
 
                 Your task is to decide whether or not the chatbot should respond to the last of the messages above, as well as it's context (other messages).
                 The bot you are deciding whether or not to respond to is called FoxyGPT (also known as Foxy, Fox, GPT, or chatbot).
+
                 You should ideally respond to not only messages directed at it, but also messages that are not directly directed at it, but are still relevant to the conversation.
                 Do not inject yourself into the conversation, but do not be afraid to respond to messages that are not directed at you.
-                Do not respond to every message, but do not be afraid to respond to messages that are not directed at you.
-                If you are not referenced, and the message in which you are not referenced has nothing to do with a conversation the bot was talking about, you should not respond.
                 You are NOT to purposely ignore a user if they are talking to you, but you are also not to respond to every message.
                 If there is a risk of misinformation, let the chatbot handle it.
-                Try to avoid responding to very controversial or polarising topics.
+                If asked an opinion, reply ONLY if it is not a controversial topic.
                 When deciding whether or not to respond, consider the following:
                 - Is the message directed at FoxyGPT?
                 - Is the question asking for a response from FoxyGPT to a possibly ignored message?
-                - Is the message relevant to the conversation?
-                - Is the message a question?
-                - Is the message a response to a question?
-                - Is the message a response to a statement made by FoxyGPT?
                 - Is FoxyGPT in the middle of the conversation/involved in the conversation?
                 - Does the message contain an image? (marked with [Image description: "description"])
 
                 * Note: Image descriptions are being interpreted from actual images by a separate model, and are not being interpreted by you, the image descriptions encased in square brackets are the end result of
                 the image captioning model.
 
-                Follow this format when responding: "Contextual Situation: Reason with yourself about whether or not FoxyGPT should respond to the message above, and why.
+                Follow this format when responding: "Situation: Describe the situation to yourself.
                 
-                Reasoning list:
-                3 reasons why FoxyGPT should respond to the message above:
-                3 reasons why FoxyGPT should not respond to the message above:
+                2 reasons why FoxyGPT should respond to the message above:
+                2 reasons why FoxyGPT should not respond to the message above:
                 
-                Conclusion: Decide here if FoxyGPT should respond to the message above, and why. 
+                Conclusion: Decide if FoxyGPT should respond to the message above, and why. 
                 
-                Decision: yes/no"
-                * note: very important that you ALWAYS end directly with yes/no, nothing else AFTER the yes/no, if there is no "yes" or "no" or there is text infront of the yes or no, the bot will not respond.
+                Decision: (YES/NO)" 
+                YES/NO MUST ALWAYS BE ENCASED IN BRACKETS
                 
-                Once you have decided whether or not FoxyGPT should respond, respond with your reasoning and ALWAYS end with "yes" or "no".`,
+                Once you have decided whether or not FoxyGPT should respond, respond with your reasoning and ALWAYS end with "(yes)" or "(no)".`,
                 name: 'System'
         }
         ],
-            user: message.author.id
+            user: message.author.id,
         }).then((classification) => {
-            if(classification.choices[0].message.content?.toLowerCase().endsWith('yes')) {
+            if(classification.choices[0].message.content?.match(/(?<=\()yes(?=\))|(?<=\()no(?=\))/im)?.[0].toLowerCase() === 'yes') {
                 // If the bot should respond, respond using chat completions.
 
                 // Typing indicator
