@@ -50,7 +50,12 @@ const conversation: ChatCompletionMessageParam[] = [
         content: `You are a friendly Discord chatbot called FoxyGPT.
         You converse like a normal internet human, occassionally (but not constantly) using internet slang. You are a furry.
         You don't have to respond to every message you see, as another LLM is deciding for you when you should send a response to a message.
-        Images are described using the format [Image description: "description"], as automatically described by an image captioning model running separately.`,
+        Images are described using the format [Image description: "description"], as automatically described by an image captioning model running separately, NOT by the user.
+        
+        Discord tricks:
+        - You can use the "spoiler" tag to hide text, like this: ||spoiler||.
+        - You can use the "code block" tag to format text, like this: \`\`\`code block\`\`\`, you can also specify a language, like this: \`\`\`js code block\`\`\`.
+        - You can use the "quote" tag to quote text, like this: >quote.`,
         name: 'System'
     }
 ];
@@ -116,16 +121,25 @@ bot.on(Events.MessageCreate, async message => {
 
                 if (!imageURL) return;
 
+                let imageData = null;
+
                 // Get the image data.
-                const imageData = await fetch(imageURL).then(res => res.blob()).then(blob => blob.arrayBuffer().then(buffer => Buffer.from(buffer).toString('base64'))); // Convert the image to base64.
+                try {
+                    imageData = await fetch(imageURL).then(res => res.blob()).then(blob => blob.arrayBuffer().then(buffer => Buffer.from(buffer).toString('base64'))); // Convert the image to base64.
+                } catch (err) {
+                    log(`Failed to get image data from ${message.author.username}'s message: "${message.content}"`, colors.red);
+                    return;
+                }
 
                 // Describe the image.
-                const description = await vis.describe(imageData);
+                let description;
 
-                if (!description.predictions[0]) {
-                    // If the image could not be described, return.
-                    log(`Google could not describe an image sent by ${message.author.username}`, colors.red);
+                try {
+                    description = await vis.describe(imageData);
+                } catch {
+                    log(`Failed to describe image sent by ${message.author.username}`, colors.red);
                     conversation.push({ role: 'user', content: `[Image description: "Google could not describe this image"]`, name: message.author.username });
+                    return;
                 }
 
                 // Add the description to the conversation array.
@@ -145,10 +159,10 @@ bot.on(Events.MessageCreate, async message => {
             model: 'gpt-3.5-turbo',
             messages: [ {
                 role: 'system',
-                content: `The following is a snippet of conversation in Discord (up to 5 messages only). You are a Chatbot's decision engine.`,
+                content: `The following is a snippet of conversation in Discord. You are the Chatbot's decision engine.`,
                 name: 'System' 
             },
-            ...conversation.slice(-5).map( msg => {
+            ...conversation.map( msg => {
                 return {
                     role: msg.role,
                     content: msg.content,
@@ -158,30 +172,48 @@ bot.on(Events.MessageCreate, async message => {
             {
                 role: 'system',
                 content: `
-                Your task is to decide whether or not the chatbot should respond to the last of the messages below, as well as it's context (other messages).
+                To clarify, the last message was ${conversation[conversation.length - 1].name}'s message: "${conversation[conversation.length - 1].content}".
+
+                Your task is to decide whether or not the chatbot should respond to the last of the messages above, as well as it's context (other messages).
                 The bot you are deciding whether or not to respond to is called FoxyGPT (also known as Foxy, Fox, GPT, or chatbot).
                 You should ideally respond to not only messages directed at it, but also messages that are not directly directed at it, but are still relevant to the conversation.
                 Do not inject yourself into the conversation, but do not be afraid to respond to messages that are not directed at you.
                 Do not respond to every message, but do not be afraid to respond to messages that are not directed at you.
                 If you are not referenced, and the message in which you are not referenced has nothing to do with a conversation the bot was talking about, you should not respond.
+                You are NOT to purposely ignore a user if they are talking to you, but you are also not to respond to every message.
+                If there is a risk of misinformation, let the chatbot handle it.
+                Try to avoid responding to very controversial or polarising topics.
                 When deciding whether or not to respond, consider the following:
                 - Is the message directed at FoxyGPT?
                 - Is the question asking for a response from FoxyGPT to a possibly ignored message?
                 - Is the message relevant to the conversation?
                 - Is the message a question?
                 - Is the message a response to a question?
+                - Is the message a response to a statement made by FoxyGPT?
+                - Is FoxyGPT in the middle of the conversation/involved in the conversation?
                 - Does the message contain an image? (marked with [Image description: "description"])
 
                 * Note: Image descriptions are being interpreted from actual images by a separate model, and are not being interpreted by you, the image descriptions encased in square brackets are the end result of
                 the image captioning model.
+
+                Follow this format when responding: "Contextual Situation: Reason with yourself about whether or not FoxyGPT should respond to the message above, and why.
                 
-                Once you have decided whether or not FoxyGPT should respond, respond with a "yes" or a "no", aswell as your reasoning.`,
+                Reasoning list:
+                3 reasons why FoxyGPT should respond to the message above:
+                3 reasons why FoxyGPT should not respond to the message above:
+                
+                Conclusion: Decide here if FoxyGPT should respond to the message above, and why. 
+                
+                Decision: yes/no"
+                * note: very important that you ALWAYS end directly with yes/no, nothing else AFTER the yes/no, if there is no "yes" or "no" or there is text infront of the yes or no, the bot will not respond.
+                
+                Once you have decided whether or not FoxyGPT should respond, respond with your reasoning and ALWAYS end with "yes" or "no".`,
                 name: 'System'
         }
         ],
             user: message.author.id
         }).then((classification) => {
-            if(classification.choices[0].message.content?.toLowerCase().startsWith('yes')) {
+            if(classification.choices[0].message.content?.toLowerCase().endsWith('yes')) {
                 // If the bot should respond, respond using chat completions.
 
                 // Typing indicator

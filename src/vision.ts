@@ -30,31 +30,39 @@ export class vision {
 
         // Get the Google Cloud credentials.
         const authClient = await this.auth.getClient();
+        let authHeaders;
+        let response;
+        try {
+            authHeaders = await authClient.getRequestHeaders();
+        } catch (error) {
+            throw new Error(`Failed to get authentication headers: ${error}`);
+        }
 
-        // const projectId = 'affable-ring-399020';
-        // const url = `https://dns.googleapis.com/dns/v1/projects/${projectId}`;
-        const authHeaders = await authClient.getRequestHeaders();
-        if (!authHeaders) throw new Error('Failed to get authentication headers.');
-
-        const response = await fetch(`https://us-central1-aiplatform.googleapis.com/v1/projects/${this.projectID}/locations/us-central1/publishers/google/models/imagetext:predict`, {
-            method: 'POST',
-            headers: authHeaders,
-            body: JSON.stringify({
-                "instances": [
-                    {
-                        "image": {
-                            "bytesBase64Encoded": base64image
+        // Make the request.
+        try {
+            response = await fetch(`https://us-central1-aiplatform.googleapis.com/v1/projects/${this.projectID}/locations/us-central1/publishers/google/models/imagetext:predict`, {
+                method: 'POST',
+                headers: authHeaders,
+                body: JSON.stringify({
+                    "instances": [
+                        {
+                            "image": {
+                                "bytesBase64Encoded": base64image
+                            }
                         }
+                    ],
+                    "parameters": {
+                        "sampleCount": sampleCount,
+                        "language": language
                     }
-                ],
-                "parameters": {
-                    "sampleCount": sampleCount,
-                    "language": language
-                }
-            })
-        });
+                })
+            });
+            
+            if(response.status !== 200) throw new Error(`Error ${response.status}: ${response.statusText}`);
+        } catch (error) {
+            throw new Error(`Failed to make request: ${error}`);
+        }
 
-        if(response.status !== 200) throw new Error(`Error ${response.status}: ${response.statusText}`);
 
         const data = await response.json();
         return data;
