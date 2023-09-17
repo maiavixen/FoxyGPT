@@ -127,7 +127,8 @@ bot.on(Events.MessageCreate, async message => {
                 try {
                     imageData = await fetch(imageURL).then(res => res.blob()).then(blob => blob.arrayBuffer().then(buffer => Buffer.from(buffer).toString('base64'))); // Convert the image to base64.
                 } catch (err) {
-                    log(`Failed to get image data from ${message.author.username}'s message: "${message.content}"`, colors.red);
+                    log(`Failed to get image data from ${message.author.username}'s message: "${message.content}"
+                    ${err}`, colors.red);
                     return;
                 }
 
@@ -136,8 +137,9 @@ bot.on(Events.MessageCreate, async message => {
 
                 try {
                     description = await vis.describe(imageData);
-                } catch {
-                    log(`Failed to describe image sent by ${message.author.username}`, colors.red);
+                } catch (err) {
+                    log(`Failed to describe image sent by ${message.author.username}.
+                    ${err}`, colors.red);
                     conversation.push({ role: 'user', content: `[Image description: "Google could not describe this image"]`, name: message.author.username });
                     return;
                 }
