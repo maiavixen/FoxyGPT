@@ -17,7 +17,7 @@ npm i
 tsc
 ```
 
------
+---
 
 ### Compiling Typescript on Windows
 
