@@ -23,6 +23,7 @@ export class vision {
      * @param base64image {string} - Base64 encoded image.
      * @param sampleCount {number} - Number of samples to return.
      * @param language {string} - Language to use.
+     * @returns {Promise<any>} - Response from the API in json.
      */
     public async describe(base64image: string, sampleCount?: number, language?: string) {
         if (!sampleCount) sampleCount = 1;

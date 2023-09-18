@@ -121,7 +121,7 @@ bot.on(Events.MessageCreate, async message => {
 
                 if (!imageURL) return;
 
-                let imageData = null;
+                let imageData: string;
 
                 // Get the image data.
                 try {
