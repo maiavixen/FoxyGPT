@@ -5,12 +5,10 @@
 import { GoogleAuth } from 'google-auth-library';
 
 export class vision {
-    apiKey: string;
     projectID: string;
     auth: GoogleAuth;
 
-    constructor(apiKey: string, projectID: string) {
-        this.apiKey = apiKey;
+    constructor(projectID: string) {
         this.projectID = projectID;
         this.auth = new GoogleAuth({
             scopes: ['https://www.googleapis.com/auth/cloud-platform'],

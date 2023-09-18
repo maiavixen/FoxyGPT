@@ -62,7 +62,7 @@ const conversation: ChatCompletionMessageParam[] = [
 
 // Initialise the Google Cloud Vision API.
 log('Initialising Google Cloud Vision API...', colors.yellow);
-const vis = new vision('AIzaSyCY8vdXcUDMT3xE9CAGQBRLeggG9tROMVQ', 'affable-ring-399020');
+const vis = new vision('affable-ring-399020');
 
 // Initialise the Discord bot.
 log('Initialising Discord bot...', colors.yellow);
