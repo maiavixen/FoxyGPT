@@ -2,6 +2,16 @@
 
 **FoxyGPT** is a concept Discord bot, which has the ability to decide whether or not it wants to respond to a message on Discord, allowing it to be summoned in the chat by addressing it like you would address any human user on Discord, in addition, it is able to recognise that it is within the scope or is relevant to a conversation, and respond when FoxyGPT deems it appropriate to do so.
 
+## How does it work?  
+
+It's pretty simple. When a message is sent to a Discord channel, FoxyGPT will first use OpenAI's moderation endpoint to make sure that the message does not have anything explicit, this is to prevent API abuse and consequentially, getting banned from OpenAI's platform. If a message is explicit, it will delete the message from the Discord channel.
+
+If it's an image, it skips the moderation endpoint (TODO: Use Google Vision to moderate images as well) and uses Google Vision's visual captioning API endpoint, where it will then return the description of the image and add it to the messages chain as an image description (similar to the captions for blind people on Mastodon), specifying to the bot that it is an image description.
+
+It will go through the "DiscordFlow Arbiter", which is really just GPT 3.5 turbo (TODO: experiment with OpenAI's new 3.5 instruct models), with instructions designed to help it know when to decide if it wants to engage in a conversation, reply to a message, or ignore the message completely.
+
+Finally, it goes through GPT-4, to construct an answer, given the context of the messages (all the past messages, TODO: add option to limit messages in the conversation array, or add vector storage for cheaper, smarter "memory")
+
 ## How to build?
 
 - Install Node.js
