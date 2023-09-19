@@ -31,7 +31,7 @@ Finally, it goes through GPT-4, to construct an answer, given the context of the
 npm i
 ```
 
-- Compile the Typescript code (Doesn't work on Windows, see below for steps on Windows)
+- Transpile the Typescript code (Doesn't work on Windows, see below for steps on Windows)
 
 ```sh
 tsc
@@ -39,9 +39,9 @@ tsc
 
 ---
 
-### Compiling Typescript on Windows
+### Transpiling Typescript on Windows
 
-- Compile the Typescript code
+- Transpile the Typescript code
 
 ```powershell
 tsc.cmd
