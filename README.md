@@ -24,7 +24,7 @@ Finally, it goes through GPT-4, to construct an answer, given the context of the
 
 ## How to build?
 
-- Install Node.js
+- Install [node.js](https://nodejs.org/)
 - Install all the dependencies
 
 ```sh
