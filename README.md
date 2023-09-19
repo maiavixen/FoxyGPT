@@ -2,7 +2,17 @@
 
 **FoxyGPT** is a concept Discord bot, which has the ability to decide whether or not it wants to respond to a message on Discord, allowing it to be summoned in the chat by addressing it like you would address any human user on Discord, in addition, it is able to recognise that it is within the scope or is relevant to a conversation, and respond when FoxyGPT deems it appropriate to do so.
 
-## How does it work?  
+## How does it work?
+
+```mermaid
+flowchart LR
+usrMsg[/User Message/] --> mod{OpenAI\nModeration\nEndpoint}
+mod -->|Explicit| delMsg[Delete Message]
+mod -->|Not Explicit| flowArb{DiscordFlow\nArbiter}
+usrImg[/User Image/] -->|Describe the image| imgDesc[Google Vision Image Description]
+imgDesc -->|Image Description| flowArb
+flowArb -->|Should Respond?| gpt4[GPT-4]
+```
 
 It's pretty simple. When a message is sent to a Discord channel, FoxyGPT will first use OpenAI's moderation endpoint to make sure that the message does not have anything explicit, this is to prevent API abuse and consequentially, getting banned from OpenAI's platform. If a message is explicit, it will delete the message from the Discord channel.
 
