@@ -23,6 +23,11 @@ const colors = {
 };
 
 // Custom console log function to add color.
+/**
+ *  Log a message to the console with color.
+ * @param message - The message to log.
+ * @param color - The color to log the message in.
+ */
 function log(message: string, color?: string) {
   if (!color) color = colors.magenta; // Default to magenta, the best color.
   console.log(`[${color}FoxGPT${colors.reset}] ${message}`);
@@ -137,7 +142,7 @@ bot.on(Events.MessageCreate, async (message) => {
             .then((blob) =>
               blob
                 .arrayBuffer()
-                .then((buffer) => Buffer.from(buffer).toString("base64")),
+                .then(buffer => Buffer.from(buffer).toString("base64")),
             ); // Convert the image to base64.
         } catch (err) {
           log(
