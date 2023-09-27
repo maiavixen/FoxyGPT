@@ -55,6 +55,7 @@ node run start
 - [ ] Use Google Vision's API to moderate images
 - [ ] Easy prompt customisation (it's currently hardcoded)
 - [ ] Support for multiple channels
+- [ ] Fine tune Discord Arbiter
 
 ## Help! I just installed the gcloud CLI and I don't know how to login
 
