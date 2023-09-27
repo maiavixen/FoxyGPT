@@ -142,7 +142,7 @@ bot.on(Events.MessageCreate, async (message) => {
             .then((blob) =>
               blob
                 .arrayBuffer()
-                .then(buffer => Buffer.from(buffer).toString("base64")),
+                .then((buffer) => Buffer.from(buffer).toString("base64")),
             ); // Convert the image to base64.
         } catch (err) {
           log(

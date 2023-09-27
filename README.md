@@ -48,6 +48,13 @@ After having built the bot:
 node run start
 ```
 
+## Goals
+
+- [x] Use OpenAI's API to moderate messages
+- [x] Use Google Vision's API to caption images
+- [ ] Use Google Vision's API to moderate images
+- [ ] Easy prompt customisation (it's currently hardcoded)
+
 ## Help! I just installed the gcloud CLI and I don't know how to login
 
 gcloud requires an application default login set up correctly for Application Default Credentials to work. Here's how you can get that working:
