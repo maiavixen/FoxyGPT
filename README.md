@@ -54,6 +54,7 @@ node run start
 - [x] Use Google Vision's API to caption images
 - [ ] Use Google Vision's API to moderate images
 - [ ] Easy prompt customisation (it's currently hardcoded)
+- [ ] Support for multiple channels
 
 ## Help! I just installed the gcloud CLI and I don't know how to login
 
