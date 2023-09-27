@@ -37,7 +37,7 @@ function log(message: string, color?: string) {
 log("Checking for .env file...", colors.yellow);
 if (!fs.existsSync(".env")) {
   log("No .env file found, creating one now...", colors.yellow);
-  fs.writeFileSync(".env", `OPENAI_API_KEY=\nDISCORD_API_KEY=\n`);
+  fs.writeFileSync(".env", `OPENAI_API_KEY=\nDISCORD_API_KEY=\nCHANNEL_ID=\n`);
   log("Please fill out the .env file and restart the script.", colors.yellow);
   process.exit(0);
 }
@@ -85,204 +85,203 @@ bot.once(Events.ClientReady, () => {
 
 // When a message is sent to a channel specified in a variable, assess the message to know whether or not the bot should respond, if so, respond using chat completions.
 bot.on(Events.MessageCreate, async (message) => {
-  const channelID = "1151959225652756550"; // The channel ID to listen to.
+  const channelID = process.env.CHANNEL_ID; // The channel ID to listen to.
   // Check if the message was sent to the channel specified in the variable.
-  if (message.channel.id === channelID) {
-    // Check if the message was sent by the bot, if so, ignore it.
-    if (message.author.id === bot.user?.id) return;
+  if (message.channel.id !== channelID) return;
+  // Check if the message was sent by the bot, if so, ignore it.
+  if (message.author.id === bot.user?.id) return;
 
-    // Check the message if it is explicit using OpenAI's content filter.
-    let explicit: boolean = false;
+  // Check the message if it is explicit using OpenAI's content filter.
+  let explicit: boolean = false;
 
-    log(
-      `Received message from ${message.author.username} (ID: ${message.author.id}): "${message.content}"`,
-    );
+  log(
+    `Received message from ${message.author.username} (ID: ${message.author.id}): "${message.content}"`,
+  );
 
-    // Check the message using OpenAI's content filter, if the message is empty, return.
-    if (!(message.content == "")) {
-      await chatbot.moderations
-        .create({
-          // Check the message using OpenAI's content filter.
-          model: "text-moderation-stable",
-          input: message.content,
-        })
-        .then((res) => {
-          if (res.results[0].flagged === true) {
-            // If the message is explicit, delete it, log it and return.
-            message.delete();
-            log(
-              `Deleted explicit message from ${message.author.username} (ID: ${message.author.id}): "${message.content}"`,
-              colors.red,
-            );
-            explicit = true;
-            return;
-          }
-        });
-    }
-
-    // If the message is explicit, return.
-    if (explicit) return;
-
-    // Check if the message has an image attached, if so, describe it using Google Cloud Vision.
-    if (message.attachments.size > 0) {
-      if (message.attachments.first()?.contentType?.startsWith("image")) {
-        // Get the image URL.
-        const imageURL = message.attachments.first()?.url;
-
-        log(`Image received, describing image: ${imageURL}`);
-
-        if (!imageURL) return;
-
-        let imageData: string;
-
-        // Get the image data.
-        try {
-          imageData = await fetch(imageURL)
-            .then((res) => res.blob())
-            .then((blob) =>
-              blob
-                .arrayBuffer()
-                .then((buffer) => Buffer.from(buffer).toString("base64")),
-            ); // Convert the image to base64.
-        } catch (err) {
-          log(
-            `Failed to get image data from ${message.author.username}'s message: "${message.content}"
-                    ${err}`,
-            colors.red,
-          );
-          return;
-        }
-
-        // Describe the image.
-        let description;
-
-        try {
-          description = await vis.describe(imageData);
-        } catch (err) {
-          log(
-            `Failed to describe image sent by ${message.author.username}.
-                    ${err}`,
-            colors.red,
-          );
-          conversation.push({
-            role: "user",
-            content: `[Image description: "Google could not describe this image"]`,
-            name: message.author.username,
-          });
-          return;
-        }
-
-        // Add the description to the conversation array.
-        conversation.push({
-          role: "user",
-          content: `[Image description: "${description.predictions[0]}"]`,
-          name: message.author.username,
-        });
-
-        log(
-          `Google described an image sent by ${message.author.username}: "${description.predictions[0]}"`,
-          colors.green,
-        );
-      }
-    }
-
-    // Add the message to the conversation array.
-    if (!(message.content == "")) {
-      conversation.push({
-        role: "user",
-        content: message.content,
-        name: message.author.username,
-      });
-    }
-
-    // Use OpenAI completions to deduce if the bot should respond.
-    chatbot.chat.completions
+  // Check the message using OpenAI's content filter, if the message is empty, return.
+  if (!(message.content == "")) {
+    await chatbot.moderations
       .create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: `The following is a snippet of conversation in Discord. You are the Chatbot's decision engine.`,
-            name: "System",
-          },
-          ...conversation.map((msg) => {
-            return {
-              role: msg.role,
-              content: msg.content,
-              name: msg.name,
-            };
-          }),
-          {
-            role: "system",
-            content: `
-                To clarify, the last message was ${
-                  conversation[conversation.length - 1].name
-                }'s message: "${conversation[conversation.length - 1].content}".
-
-                Your task is to decide whether or not the chatbot should respond to the last of the messages above, as well as it's context (other messages).
-                The bot you are deciding whether or not to respond to is called FoxyGPT (also known as Foxy, Fox, GPT, or chatbot).
-
-                You should respond to ANY and ALL messages that involve FoxGPT, are directed at FoxGPT, or are in a conversation that FoxGPT has or is actively participating in.
-                FoxyGPT is a chatbot willing to start a conversation with anyone, so it SHOULD respond to EVERY messages that directly address it, regardless of relevance.
-                You may assume that FoxyGPT is knowledgeable on ALL matters, as it is powered by GPT-4.
-                * Note: Image descriptions are being interpreted from actual images by a separate model, and are not being interpreted by you, the image descriptions encased in square brackets are the end result of
-                the image captioning model.
-
-                Follow this format when responding: "Situation: Describe the situation to yourself.
-                Why you should or shouldn't respond: I should respond because X, but I shouldn't because Y.
-                
-                Conclusion: Decide if FoxyGPT should respond to the message above, and why. 
-                
-                Decision: (YES/NO)" 
-                YES/NO MUST ALWAYS BE ENCASED IN PARENTHESES, LIKE THIS: "(YES)" OR "(NO)".
-                
-                Once you have decided whether or not FoxyGPT should respond, respond with your reasoning and ALWAYS end with "(yes)" or "(no)".`,
-            name: "System",
-          },
-        ],
-        user: message.author.id,
+        // Check the message using OpenAI's content filter.
+        model: "text-moderation-stable",
+        input: message.content,
       })
-      .then((classification) => {
-        if (
-          classification.choices[0].message.content
-            ?.match(/(?<=\()yes(?=\))|(?<=\()no(?=\))/im)?.[0]
-            .toLowerCase() === "yes"
-        ) {
-          // If the bot should respond, respond using chat completions.
-
-          // Typing indicator
-          message.channel.sendTyping();
-
-          // Send the message to the OpenAI chatbot.
-          chatbot.chat.completions
-            .create({
-              model: "gpt-4",
-              messages: conversation,
-            })
-            .then((response) => {
-              // Send the response to the channel.
-              message.channel.send(
-                (response.choices[0].message.content ??= "No response."),
-              );
-              // Add the response to the conversation array.
-              conversation.push({
-                role: "assistant",
-                content: response.choices[0].message.content,
-              });
-
-              log(
-                `FoxyGPT responded to ${message.author.username}'s message: "${message.content}" with: "${response.choices[0].message.content}", response: "${classification.choices[0].message.content}"`,
-                colors.green,
-              );
-            });
-        } else {
+      .then((res) => {
+        if (res.results[0].flagged === true) {
+          // If the message is explicit, delete it, log it and return.
+          message.delete();
           log(
-            `FoxyGPT to not respond to ${message.author.username}'s message: "${message.content}", response: "${classification.choices[0].message.content}"`,
+            `Deleted explicit message from ${message.author.username} (ID: ${message.author.id}): "${message.content}"`,
             colors.red,
           );
+          explicit = true;
+          return;
         }
       });
   }
+
+  // If the message is explicit, return.
+  if (explicit) return;
+
+  // Check if the message has an image attached, if so, describe it using Google Cloud Vision.
+  if (message.attachments.size > 0) {
+    if (message.attachments.first()?.contentType?.startsWith("image")) {
+      // Get the image URL.
+      const imageURL = message.attachments.first()?.url;
+
+      log(`Image received, describing image: ${imageURL}`);
+
+      if (!imageURL) return;
+
+      let imageData: string;
+
+      // Get the image data.
+      try {
+        imageData = await fetch(imageURL)
+          .then((res) => res.blob())
+          .then((blob) =>
+            blob
+              .arrayBuffer()
+              .then((buffer) => Buffer.from(buffer).toString("base64")),
+          ); // Convert the image to base64.
+      } catch (err) {
+        log(
+          `Failed to get image data from ${message.author.username}'s message: "${message.content}"
+                  ${err}`,
+          colors.red,
+        );
+        return;
+      }
+
+      // Describe the image.
+      let description;
+
+      try {
+        description = await vis.describe(imageData);
+      } catch (err) {
+        log(
+          `Failed to describe image sent by ${message.author.username}.
+                  ${err}`,
+          colors.red,
+        );
+        conversation.push({
+          role: "user",
+          content: `[Image description: "Google could not describe this image"]`,
+          name: message.author.username,
+        });
+        return;
+      }
+
+      // Add the description to the conversation array.
+      conversation.push({
+        role: "user",
+        content: `[Image description: "${description.predictions[0]}"]`,
+        name: message.author.username,
+      });
+
+      log(
+        `Google described an image sent by ${message.author.username}: "${description.predictions[0]}"`,
+        colors.green,
+      );
+    }
+  }
+
+  // Add the message to the conversation array.
+  if (!(message.content == "")) {
+    conversation.push({
+      role: "user",
+      content: message.content,
+      name: message.author.username,
+    });
+  }
+
+  // Use OpenAI completions to deduce if the bot should respond.
+  chatbot.chat.completions
+    .create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: `The following is a snippet of conversation in Discord. You are the Chatbot's decision engine.`,
+          name: "System",
+        },
+        ...conversation.map((msg) => {
+          return {
+            role: msg.role,
+            content: msg.content,
+            name: msg.name,
+          };
+        }),
+        {
+          role: "system",
+          content: `
+              To clarify, the last message was ${
+                conversation[conversation.length - 1].name
+              }'s message: "${conversation[conversation.length - 1].content}".
+
+              Your task is to decide whether or not the chatbot should respond to the last of the messages above, as well as it's context (other messages).
+              The bot you are deciding whether or not to respond to is called FoxyGPT (also known as Foxy, Fox, GPT, or chatbot).
+
+              You should respond to ANY and ALL messages that involve FoxGPT, are directed at FoxGPT, or are in a conversation that FoxGPT has or is actively participating in.
+              FoxyGPT is a chatbot willing to start a conversation with anyone, so it SHOULD respond to EVERY messages that directly address it, regardless of relevance.
+              You may assume that FoxyGPT is knowledgeable on ALL matters, as it is powered by GPT-4.
+              * Note: Image descriptions are being interpreted from actual images by a separate model, and are not being interpreted by you, the image descriptions encased in square brackets are the end result of
+              the image captioning model.
+
+              Follow this format when responding: "Situation: Describe the situation to yourself.
+              Why you should or shouldn't respond: I should respond because X, but I shouldn't because Y.
+              
+              Conclusion: Decide if FoxyGPT should respond to the message above, and why. 
+              
+              Decision: (YES/NO)" 
+              YES/NO MUST ALWAYS BE ENCASED IN PARENTHESES, LIKE THIS: "(YES)" OR "(NO)".
+              
+              Once you have decided whether or not FoxyGPT should respond, respond with your reasoning and ALWAYS end with "(yes)" or "(no)".`,
+          name: "System",
+        },
+      ],
+      user: message.author.id,
+    })
+    .then((classification) => {
+      if (
+        classification.choices[0].message.content
+          ?.match(/(?<=\()yes(?=\))|(?<=\()no(?=\))/im)?.[0]
+          .toLowerCase() === "yes"
+      ) {
+        // If the bot should respond, respond using chat completions.
+
+        // Typing indicator
+        message.channel.sendTyping();
+
+        // Send the message to the OpenAI chatbot.
+        chatbot.chat.completions
+          .create({
+            model: "gpt-4",
+            messages: conversation,
+          })
+          .then((response) => {
+            // Send the response to the channel.
+            message.channel.send(
+              (response.choices[0].message.content ??= "No response."),
+            );
+            // Add the response to the conversation array.
+            conversation.push({
+              role: "assistant",
+              content: response.choices[0].message.content,
+            });
+
+            log(
+              `FoxyGPT responded to ${message.author.username}'s message: "${message.content}" with: "${response.choices[0].message.content}", response: "${classification.choices[0].message.content}"`,
+              colors.green,
+            );
+          });
+      } else {
+        log(
+          `FoxyGPT to not respond to ${message.author.username}'s message: "${message.content}", response: "${classification.choices[0].message.content}"`,
+          colors.red,
+        );
+      }
+    });
 });
 
 // Log into Discord.
