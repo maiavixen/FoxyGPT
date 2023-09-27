@@ -27,6 +27,7 @@
     "prepare": "husky install",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "node ./dist/bot.ts"
   }
 }

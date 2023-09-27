@@ -24,27 +24,17 @@ Finally, it goes through GPT-4, to construct an answer, given the context of the
 
 ## How to build?
 
-- Install [node.js](https://nodejs.org/)
+- Make sure you have [node.js](https://nodejs.org/)
 - Install all the dependencies
 
 ```sh
 npm i
 ```
 
-- Transpile the Typescript code (Doesn't work on Windows, see below for steps on Windows)
+- Compile the Typescript code
 
 ```sh
-tsc
-```
-
----
-
-### Transpiling Typescript on Windows
-
-- Transpile the Typescript code
-
-```powershell
-tsc.cmd
+npm build
 ```
 
 ## How to run?
@@ -55,7 +45,7 @@ After having built the bot:
 - Run the bot
 
 ```sh
-node dist/bot.js
+node run start
 ```
 
 ## Help! I just installed the gcloud CLI and I don't know how to login
@@ -63,7 +53,7 @@ node dist/bot.js
 gcloud requires an application default login set up correctly for Application Default Credentials to work. Here's how you can get that working:
 
 - If you haven't, install [gcloud CLI](https://cloud.google.com/sdk/docs/install).
-- Aquire new user credentials to use for ADC (Application Default Credentials) (Doesn't work on Windows- see below for steps on Windows)
+- Acquire new user credentials to use for ADC (Application Default Credentials) (Doesn't work on Windows- see steps below for Windows)
 
 ```sh
 gcloud auth application-default login
@@ -71,7 +61,7 @@ gcloud auth application-default login
 
 ### Auth with gcloud for Windows
 
-- Aquire new user credentials to use for ADC (Application Default Credentials)
+- Acquire new user credentials to use for ADC (Application Default Credentials)
 
 ```powershell
 gcloud.cmd auth application-default login
