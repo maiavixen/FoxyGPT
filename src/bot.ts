@@ -133,7 +133,7 @@ bot.on(Events.MessageCreate, async (message) => {
     await chatbot.moderations
       .create({
         // Check the message using OpenAI's content filter.
-        model: "text-moderation-stable",
+        model: "text-moderation-latest",
         input: message.content,
       })
       .then((res) => {
