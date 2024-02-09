@@ -4,23 +4,9 @@
 
 ## How does it work?
 
-```mermaid
-flowchart LR
-usrMsg[/User Message/] --> mod{OpenAI\nModeration\nEndpoint}
-mod -->|Explicit| delMsg[Delete Message]
-mod -->|Not Explicit| flowArb{DiscordFlow\nArbiter}
-usrImg[/User Image/] -->|Describe the image| imgDesc[Google Vision Image Description]
-imgDesc -->|Image Description| flowArb
-flowArb -->|Should Respond?| gpt4[GPT-4]
-```
-
 It's pretty simple. When a message is sent to a Discord channel, FoxyGPT will first use OpenAI's moderation endpoint to make sure that the message does not have anything explicit, this is to prevent API abuse and consequentially, getting banned from OpenAI's platform. If a message is explicit, it will delete the message from the Discord channel.
 
-If it's an image, it skips the moderation endpoint (TODO: Use Google Vision to moderate images as well) and uses Google Vision's visual captioning API endpoint, where it will then return the description of the image and add it to the messages chain as an image description (similar to the captions for blind people on Mastodon), specifying to the bot that it is an image description.
-
-It will go through the "DiscordFlow Arbiter", which is really just GPT 3.5 turbo (TODO: experiment with OpenAI's new 3.5 instruct models), with instructions designed to help it know when to decide if it wants to engage in a conversation, reply to a message, or ignore the message completely.
-
-Finally, it goes through GPT-4, to construct an answer, given the context of the messages (all the past messages, TODO: add option to limit messages in the conversation array, or add vector storage for cheaper, smarter "memory")
+It then goes directly into GPT 4 Vision, where it decides if it wants to message or not, and if it does, it will send a reply. GPT 4 Vision allows it to both react, and decide if it wants to react to a message, as well as images.
 
 ## How to build?
 
@@ -41,37 +27,30 @@ npm build
 
 After having built the bot:
 
-- Make sure you have [gcloud CLI](https://cloud.google.com/sdk/docs/install) installed
 - Run the bot
 
 ```sh
 node run start
 ```
 
+- A new file called `.env` will have been created in the root directory of the project, modify it to add your API keys and your preferred Discord channel ID.
+
 ## Goals
 
 - [x] Use OpenAI's API to moderate messages
-- [x] Use Google Vision's API to caption images
-- [ ] Use Google Vision's API to moderate images
+- ~~[x] Use Google Vision's API to caption images~~
+- ~~[ ] Use Google Vision's API to moderate images~~ - Migrated to GPT-4 Vision.
+- [x] Replace Google Vision API with GPT-4-Vision preview
 - [ ] Easy prompt customisation (it's currently hardcoded)
 - [ ] Support for multiple channels
 - [ ] Fine tune Discord Arbiter
 
-## Help! I just installed the gcloud CLI and I don't know how to login
+## **_!!! WARNING !!!_**
 
-gcloud requires an application default login set up correctly for Application Default Credentials to work. Here's how you can get that working:
+This project contains a **LOT** of spaghetti code right now. OpenAI has changed their node.js library quite a lot since I last touched this project, and I made this on a whim. This kind of needs a total recode, at least the logic that handles the GPT-4 chat completion.
 
-- If you haven't, install [gcloud CLI](https://cloud.google.com/sdk/docs/install).
-- Acquire new user credentials to use for ADC (Application Default Credentials) (Doesn't work on Windows- see steps below for Windows)
+For now, this is how it is, and why it stays on it's own branch, for now.
 
-```sh
-gcloud auth application-default login
-```
+## Another heads up
 
-### Auth with gcloud for Windows
-
-- Acquire new user credentials to use for ADC (Application Default Credentials)
-
-```powershell
-gcloud.cmd auth application-default login
-```
+Considering this is meant to be using the preview of GPT-4 Vision, this may not work for everyone, as AFAIK not everyone has vision access, and it's also quite expensive to run. I wouldn't run this in a busy server overnight unless you set up a limit on the OpenAI platform.

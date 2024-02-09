@@ -5,11 +5,36 @@ import fs from "fs";
 import { OpenAI } from "openai";
 
 // import discord.js
-import { Client, GatewayIntentBits, Events } from "discord.js";
-import { ChatCompletionMessageParam } from "openai/resources/chat/index.mjs";
+import {
+  Client,
+  GatewayIntentBits,
+  Events,
+  Attachment,
+  Collection,
+} from "discord.js";
+import { ChatCompletionContentPart } from "openai/resources/index.mjs";
 
-// import vision
-import { vision } from "./vision.js";
+interface DiscordMessageHistory {
+  /**
+   * Message content
+   */
+  content: string;
+
+  /**
+   * Role, for GPT purposes
+   */
+  role: "user" | "assistant" | "system";
+
+  /**
+   * User's username
+   */
+  username?: string;
+
+  /**
+   * url, incase there is one for images.
+   */
+  urls?: Collection<string, Attachment>;
+}
 
 // Control character color codes for console output.
 const colors = {
@@ -49,25 +74,29 @@ const chatbot = new OpenAI({
 });
 
 // Initialise the messages array template with a system message defining the bot's behaviour.
-const conversation: ChatCompletionMessageParam[] = [
+const conversation: DiscordMessageHistory[] = [
   {
     role: "system",
     content: `You are a friendly Discord chatbot called FoxyGPT.
-        You converse like a normal internet human, occassionally (but not constantly) using internet slang. You are a furry.
-        You don't have to respond to every message you see, as another LLM is deciding for you when you should send a response to a message.
-        Images are described using the format [Image description: "description"], as automatically described by an image captioning model running separately, NOT by the user.
+        You converse like a normal internet human, occassionally (but not constantly) using internet slang.
         
         Discord tricks:
         - You can use the "spoiler" tag to hide text, like this: ||spoiler||.
         - You can use the "code block" tag to format text, like this: \`\`\`code block\`\`\`, you can also specify a language, like this: \`\`\`js code block\`\`\`.
-        - You can use the "quote" tag to quote text, like this: >quote.`,
-    name: "System",
+        - You can use the "quote" tag to quote text, like this: >quote.
+        
+        You have a choice of not responding to every message, if you deem it irrelevant to you. Like a normal chatroom user, if a message is related to a conversation you were in, or a topic
+        you were mentioned in, or you are directly mentioned, just as a few examples, you may message.
+        
+        In order to decide whether or not you want to message, the first line of your message MUST be just "YES" or "NO", nothing else, you will then type the message you are responding to right under it.
+        Remember, this is important, the code that checks if you want to respond can only understand "YES" or "NO" on the first line, and will send the user anything you write under the first line, which is the "YES" or "NO" line.
+        REMEMBER: Some messages may not be referring to you, do not automatically assume that a "hello there" that doesn't refer to anyone is referring to you, unless it's within the scope of a conversation you are holding. CONTEXT MATTERS! Keep the other messages in mind too.
+        
+        The format of each message you RECEIVE goes like this
+        "username: content"
+        do NOT replicate this format in your messages UNDER ANY CIRCUMSTANCES, this format is only there so YOU know who you are talking to, the user should not see this at all, so again, do not replicate or include this, or the user's messages in your replies.`,
   },
 ];
-
-// Initialise the Google Cloud Vision API.
-log("Initialising Google Cloud Vision API...", colors.yellow);
-const vis = new vision("affable-ring-399020");
 
 // Initialise the Discord bot.
 log("Initialising Discord bot...", colors.yellow);
@@ -96,6 +125,7 @@ bot.on(Events.MessageCreate, async (message) => {
 
   log(
     `Received message from ${message.author.username} (ID: ${message.author.id}): "${message.content}"`,
+    colors.blue,
   );
 
   // Check the message using OpenAI's content filter, if the message is empty, return.
@@ -123,165 +153,99 @@ bot.on(Events.MessageCreate, async (message) => {
   // If the message is explicit, return.
   if (explicit) return;
 
-  // Check if the message has an image attached, if so, describe it using Google Cloud Vision.
-  if (message.attachments.size > 0) {
-    if (message.attachments.first()?.contentType?.startsWith("image")) {
-      // Get the image URL.
-      const imageURL = message.attachments.first()?.url;
-
-      log(`Image received, describing image: ${imageURL}`);
-
-      if (!imageURL) return;
-
-      let imageData: string;
-
-      // Get the image data.
-      try {
-        imageData = await fetch(imageURL)
-          .then((res) => res.blob())
-          .then((blob) =>
-            blob
-              .arrayBuffer()
-              .then((buffer) => Buffer.from(buffer).toString("base64")),
-          ); // Convert the image to base64.
-      } catch (err) {
-        log(
-          `Failed to get image data from ${message.author.username}'s message: "${message.content}"
-                  ${err}`,
-          colors.red,
-        );
-        return;
-      }
-
-      // Describe the image.
-      let description;
-
-      try {
-        description = await vis.describe(imageData);
-      } catch (err) {
-        log(
-          `Failed to describe image sent by ${message.author.username}.
-                  ${err}`,
-          colors.red,
-        );
-        conversation.push({
-          role: "user",
-          content: `[Image description: "Google could not describe this image"]`,
-          name: message.author.username,
-        });
-        return;
-      }
-
-      // Add the description to the conversation array.
-      conversation.push({
-        role: "user",
-        content: `[Image description: "${description.predictions[0]}"]`,
-        name: message.author.username,
-      });
-
-      log(
-        `Google described an image sent by ${message.author.username}: "${description.predictions[0]}"`,
-        colors.green,
-      );
-    }
-  }
+  const attachments = message.attachments.filter((attachment) => {
+    // If the attachment is an image, then add it to attachments.
+    if (attachment.contentType?.startsWith("image")) return true;
+    return false;
+  });
 
   // Add the message to the conversation array.
   if (!(message.content == "")) {
     conversation.push({
       role: "user",
       content: message.content,
-      name: message.author.username,
+      username: message.author.username,
+      urls: attachments,
     });
   }
 
-  // Use OpenAI completions to deduce if the bot should respond.
-  chatbot.chat.completions
-    .create({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "system",
-          content: `The following is a snippet of conversation in Discord. You are the Chatbot's decision engine.`,
-          name: "System",
-        },
-        ...conversation.map((msg) => {
-          return {
-            role: msg.role,
-            content: msg.content,
-            name: msg.name,
-          };
-        }),
-        {
-          role: "system",
-          content: `
-              To clarify, the last message was ${
-                conversation[conversation.length - 1].name
-              }'s message: "${conversation[conversation.length - 1].content}".
+  // Use GPT-4 to deduce whether it should not respond, and if so, form a response.
+  const completion = await chatbot.chat.completions.create({
+    model: "gpt-4-vision-preview",
+    messages: conversation.map((msg) => {
+      // Set the username for the message.
+      const msgContent = msg.username
+        ? `${msg.username}: ${msg.content}`
+        : msg.content;
 
-              Your task is to decide whether or not the chatbot should respond to the last of the messages above, as well as it's context (other messages).
-              The bot you are deciding whether or not to respond to is called FoxyGPT (also known as Foxy, Fox, GPT, or chatbot).
+      const urls = msg.urls;
 
-              You should respond to ANY and ALL messages that involve FoxGPT, are directed at FoxGPT, or are in a conversation that FoxGPT has or is actively participating in.
-              FoxyGPT is a chatbot willing to start a conversation with anyone, so it SHOULD respond to EVERY messages that directly address it, regardless of relevance.
-              You may assume that FoxyGPT is knowledgeable on ALL matters, as it is powered by GPT-4.
-              * Note: Image descriptions are being interpreted from actual images by a separate model, and are not being interpreted by you, the image descriptions encased in square brackets are the end result of
-              the image captioning model.
+      const content: ChatCompletionContentPart[] = [];
 
-              Follow this format when responding: "Situation: Describe the situation to yourself.
-              Why you should or shouldn't respond: I should respond because X, but I shouldn't because Y.
-              
-              Conclusion: Decide if FoxyGPT should respond to the message above, and why. 
-              
-              Decision: (YES/NO)" 
-              YES/NO MUST ALWAYS BE ENCASED IN PARENTHESES, LIKE THIS: "(YES)" OR "(NO)".
-              
-              Once you have decided whether or not FoxyGPT should respond, respond with your reasoning and ALWAYS end with "(yes)" or "(no)".`,
-          name: "System",
-        },
-      ],
-      user: message.author.id,
-    })
-    .then((classification) => {
-      if (
-        classification.choices[0].message.content
-          ?.match(/(?<=\()yes(?=\))|(?<=\()no(?=\))/im)?.[0]
-          .toLowerCase() === "yes"
-      ) {
-        // If the bot should respond, respond using chat completions.
-
-        // Typing indicator
-        message.channel.sendTyping();
-
-        // Send the message to the OpenAI chatbot.
-        chatbot.chat.completions
-          .create({
-            model: "gpt-4",
-            messages: conversation,
-          })
-          .then((response) => {
-            // Send the response to the channel.
-            message.channel.send(
-              (response.choices[0].message.content ??= "No response."),
-            );
-            // Add the response to the conversation array.
-            conversation.push({
-              role: "assistant",
-              content: response.choices[0].message.content,
-            });
-
-            log(
-              `FoxyGPT responded to ${message.author.username}'s message: "${message.content}" with: "${response.choices[0].message.content}", response: "${classification.choices[0].message.content}"`,
-              colors.green,
-            );
+      if (urls) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        for (const [_key, attachment] of urls) {
+          content.push({
+            type: "image_url",
+            image_url: {
+              url: attachment.url,
+            },
           });
-      } else {
-        log(
-          `FoxyGPT to not respond to ${message.author.username}'s message: "${message.content}", response: "${classification.choices[0].message.content}"`,
-          colors.red,
-        );
+        }
       }
-    });
+
+      content.push({
+        type: "text",
+        text: msgContent,
+      });
+
+      if (msg.role === "user") {
+        return {
+          role: "user",
+          content,
+        };
+      } else {
+        return {
+          role: msg.role,
+          content: msgContent,
+        };
+      }
+    }),
+    max_tokens: 4096,
+  });
+
+  // this is messy, sveny pls fix.
+  const replyContent = completion.choices[0].message.content;
+  const replyBool = replyContent?.match(/^(YES|NO)/im)?.[0];
+
+  const replyMsg = replyContent?.replace(/^[^\n]*\n/, "");
+
+  // If there is no "yes/no" in the message, error.
+  if (!replyBool) {
+    log(`Error; no decision made: "${replyContent}"`);
+  }
+  // if there is no content to the message, error.
+  if (!replyMsg) {
+    log(`Error; no reply message: "${replyContent}"`);
+    return;
+  }
+  // if the decision is "NO" then ignore.
+  if (replyBool === "NO") {
+    log(`Ignored message, replyBool: ${replyBool}`);
+    return;
+  }
+
+  message.channel.send(replyMsg);
+
+  conversation.push({
+    content: replyMsg,
+    role: "assistant",
+  });
+
+  log(
+    `Sent message in response to ${message.author.username} (ID: ${message.author.id}): "${replyMsg}"\n${replyContent}\nSTOP REASON: ${completion.choices[0].finish_reason}\n`,
+    colors.green,
+  );
 });
 
 // Log into Discord.

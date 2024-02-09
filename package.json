@@ -2,7 +2,6 @@
   "dependencies": {
     "discord.js": "^14.13.0",
     "dotenv": "^16.3.1",
-    "google-auth-library": "^9.0.0",
     "openai": "^4.7.0"
   },
   "type": "module",
@@ -28,6 +27,6 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "build": "tsc",
-    "start": "node ./dist/bot.ts"
+    "start": "node ./dist/bot.js"
   }
 }
